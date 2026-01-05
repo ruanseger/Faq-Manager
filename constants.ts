@@ -3,7 +3,6 @@ import { SystemType, CategoryType, PType } from './types';
 export const SYSTEMS: SystemType[] = [
   'Secullum Ponto Web',
   'Secullum Ponto Offline',
-  'Secullum Ponto 4',
   'Secullum Acesso',
   'Secullum Academia',
   'Secullum Escola',

@@ -46,7 +46,12 @@ import {
   Link as LinkIcon,
   FileText,
   HelpCircle,
-  Globe
+  Globe,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Palette
 } from 'lucide-react';
 
 import { FAQItem, FilterState, SystemType, CategoryType, PType, HistoryEntry } from './types';
@@ -79,6 +84,21 @@ const INITIAL_DATA: FAQItem[] = [
   },
 ];
 
+const AVAILABLE_COLORS = [
+  { key: 'blue', label: 'Azul', hex: '#3b82f6' },
+  { key: 'green', label: 'Verde', hex: '#10b981' },
+  { key: 'red', label: 'Vermelho', hex: '#ef4444' },
+  { key: 'purple', label: 'Roxo', hex: '#8b5cf6' },
+  { key: 'orange', label: 'Laranja', hex: '#f97316' },
+  { key: 'teal', label: 'Verde Água', hex: '#14b8a6' },
+  { key: 'indigo', label: 'Índigo', hex: '#6366f1' },
+  { key: 'pink', label: 'Rosa', hex: '#ec4899' },
+  { key: 'cyan', label: 'Ciano', hex: '#06b6d4' },
+  { key: 'rose', label: 'Rose', hex: '#f43f5e' },
+  { key: 'sky', label: 'Céu', hex: '#0ea5e9' },
+  { key: 'gray', label: 'Cinza', hex: '#6b7280' },
+];
+
 const Badge = ({ children, color = 'gray', icon: Icon }: { children?: React.ReactNode, color?: string, icon?: any }) => {
   const colors: Record<string, string> = {
     blue: 'bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800',
@@ -87,6 +107,12 @@ const Badge = ({ children, color = 'gray', icon: Icon }: { children?: React.Reac
     purple: 'bg-purple-50 text-purple-700 border-purple-100 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800',
     gray: 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600',
     sky: 'bg-sky-50 text-sky-700 border-sky-100 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-800',
+    orange: 'bg-orange-50 text-orange-700 border-orange-100 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800',
+    teal: 'bg-teal-50 text-teal-700 border-teal-100 dark:bg-teal-900/30 dark:text-teal-300 dark:border-teal-800',
+    indigo: 'bg-indigo-50 text-indigo-700 border-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800',
+    pink: 'bg-pink-50 text-pink-700 border-pink-100 dark:bg-pink-900/30 dark:text-pink-300 dark:border-pink-800',
+    cyan: 'bg-cyan-50 text-cyan-700 border-cyan-100 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-cyan-800',
+    rose: 'bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800',
   };
   return (
     <span className={`px-2 py-1 rounded-md text-[10px] font-bold border ${colors[color] || colors.gray} uppercase tracking-wide whitespace-nowrap flex items-center gap-1`}>
@@ -94,6 +120,77 @@ const Badge = ({ children, color = 'gray', icon: Icon }: { children?: React.Reac
       {children}
     </span>
   );
+};
+
+const Pagination = ({ 
+    currentPage, 
+    totalPages, 
+    onPageChange, 
+    totalItems, 
+    itemsPerPage 
+}: { 
+    currentPage: number, 
+    totalPages: number, 
+    onPageChange: (page: number) => void,
+    totalItems: number,
+    itemsPerPage: number
+}) => {
+    const startItem = ((currentPage - 1) * itemsPerPage) + 1;
+    const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+    if (totalItems === 0) return null;
+
+    return (
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 py-4 px-2 border-t border-gray-200 dark:border-slate-700 mt-4">
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+                Mostrando <span className="font-bold text-gray-800 dark:text-white">{startItem}</span> a <span className="font-bold text-gray-800 dark:text-white">{endItem}</span> de <span className="font-bold text-gray-800 dark:text-white">{totalItems}</span> resultados
+            </div>
+            
+            <div className="flex items-center gap-1">
+                <button 
+                    onClick={() => onPageChange(1)} 
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-600 dark:text-gray-300"
+                    title="Primeira Página"
+                >
+                    <ChevronsLeft size={16} />
+                </button>
+                <button 
+                    onClick={() => onPageChange(currentPage - 1)} 
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-600 dark:text-gray-300"
+                    title="Página Anterior"
+                >
+                    <ChevronLeft size={16} />
+                </button>
+                
+                <div className="flex items-center gap-1 px-2">
+                    <span className="text-sm font-bold text-gray-800 dark:text-white bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 px-3 py-1.5 rounded-lg min-w-[3rem] text-center">
+                        {currentPage}
+                    </span>
+                    <span className="text-sm text-gray-400">de</span>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{totalPages}</span>
+                </div>
+
+                <button 
+                    onClick={() => onPageChange(currentPage + 1)} 
+                    disabled={currentPage === totalPages}
+                    className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-600 dark:text-gray-300"
+                    title="Próxima Página"
+                >
+                    <ChevronRight size={16} />
+                </button>
+                <button 
+                    onClick={() => onPageChange(totalPages)} 
+                    disabled={currentPage === totalPages}
+                    className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-600 dark:text-gray-300"
+                    title="Última Página"
+                >
+                    <ChevronsRight size={16} />
+                </button>
+            </div>
+        </div>
+    );
 };
 
 const App: React.FC = () => {
@@ -116,6 +213,20 @@ const App: React.FC = () => {
       const saved = localStorage.getItem('secullum-systems');
       return saved ? JSON.parse(saved) : DEFAULT_SYSTEMS;
     } catch (e) { return DEFAULT_SYSTEMS; }
+  });
+
+  const [systemColors, setSystemColors] = useState<Record<string, string>>(() => {
+    try {
+        const saved = localStorage.getItem('secullum-system-colors');
+        if (saved) return JSON.parse(saved);
+        
+        // Generate defaults if empty
+        const defaults: Record<string, string> = {};
+        DEFAULT_SYSTEMS.forEach((sys, i) => {
+            defaults[sys] = AVAILABLE_COLORS[i % AVAILABLE_COLORS.length].key;
+        });
+        return defaults;
+    } catch(e) { return {}; }
   });
 
   const [categories, setCategories] = useState<string[]>(() => {
@@ -197,6 +308,10 @@ const App: React.FC = () => {
   }, [systems]);
 
   useEffect(() => {
+    localStorage.setItem('secullum-system-colors', JSON.stringify(systemColors));
+  }, [systemColors]);
+
+  useEffect(() => {
     localStorage.setItem('secullum-categories', JSON.stringify(categories));
   }, [categories]);
 
@@ -253,9 +368,8 @@ const App: React.FC = () => {
   }, [items, filters]);
 
   const displayedItems = useMemo(() => {
-    if (viewAllMode && listViewMode === 'grid') {
-      return filteredItems;
-    }
+    // If viewAllMode is true, we might skip pagination, but user requested pagination for 1000 items.
+    // So we'll enforce pagination for better performance unless explicitly needed otherwise.
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredItems.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredItems, currentPage, viewAllMode, listViewMode]);
@@ -263,6 +377,27 @@ const App: React.FC = () => {
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
 
   // --- HANDLERS ---
+  const getSystemColor = (systemName: string) => {
+    if (systemColors[systemName]) {
+        return systemColors[systemName];
+    }
+    // Fallback if not found in map
+    const colors = AVAILABLE_COLORS.map(c => c.key);
+    let hash = 0;
+    for (let i = 0; i < systemName.length; i++) {
+        hash = systemName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
+  };
+
+  const handleSystemColorChange = (system: string, colorKey: string) => {
+    setSystemColors(prev => ({
+        ...prev,
+        [system]: colorKey
+    }));
+  };
+
   const getLastUpdated = (item: FAQItem) => {
     const updated = item.history?.find(h => h.action === 'Marcado como Atualizado' || h.action === 'PF Criada');
     const date = updated ? updated.date : item.createdAt;
@@ -375,8 +510,10 @@ const App: React.FC = () => {
     if (!id) return;
     
     if (window.confirm('Atenção: Tem certeza que deseja excluir esta PF permanentemente?')) {
+      // 1. Update List State
       setItems(prevItems => prevItems.filter(i => i.id !== id));
       
+      // 2. Remove from selections if present
       if (selectedIds.has(id)) {
           setSelectedIds(prev => {
               const newSet = new Set(prev);
@@ -385,10 +522,12 @@ const App: React.FC = () => {
           });
       }
       
+      // 3. IMPORTANT: If the deleted item is currently open in the modal, close it immediately
       if (isModalOpen && editingItem?.id === id) {
           setIsModalOpen(false);
           setEditingItem(null); 
       }
+
       setToast({ message: 'PF excluída com sucesso', type: 'success' });
     }
   };
@@ -588,6 +727,12 @@ const App: React.FC = () => {
           summary: formData.summary || '',
           history: [{ date: Date.now(), action: 'PF Criada' }]
         };
+
+        // AUTO-GENERATE URL FOR QUICK ADD
+        if (isQuick && !newItem.url && newItem.pfNumber) {
+            newItem.url = `https://www.secullum.com.br/pt/perguntas-frequentes/${newItem.pfNumber}`;
+        }
+
         setItems(prev => [newItem, ...prev]);
       }
       
@@ -662,11 +807,16 @@ const App: React.FC = () => {
   const handleAddSystem = () => {
     if (newSystemName && !systems.includes(newSystemName)) {
         setSystems([...systems, newSystemName]);
+        // Assign a random color to the new system
+        const randomColor = AVAILABLE_COLORS[Math.floor(Math.random() * AVAILABLE_COLORS.length)].key;
+        setSystemColors(prev => ({ ...prev, [newSystemName]: randomColor }));
         setNewSystemName('');
     }
   };
 
-  const handleRemoveSystem = (name: string) => {
+  const handleRemoveSystem = (name: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (confirm(`Remover sistema "${name}"?`)) {
         setSystems(systems.filter(s => s !== name));
     }
@@ -679,7 +829,9 @@ const App: React.FC = () => {
     }
   };
 
-  const handleRemoveCategory = (name: string) => {
+  const handleRemoveCategory = (name: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (confirm(`Remover categoria "${name}"?`)) {
         setCategories(categories.filter(c => c !== name));
     }
@@ -692,7 +844,9 @@ const App: React.FC = () => {
     }
   };
 
-  const handleRemoveType = (name: string) => {
+  const handleRemoveType = (name: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (confirm(`Remover tipo "${name}"?`)) {
         setTypes(types.filter(t => t !== name));
     }
@@ -984,8 +1138,8 @@ const App: React.FC = () => {
             ) : (
                 <>
                 {listViewMode === 'table' && (
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden flex-1">
-                        <div className="overflow-x-auto">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden flex-1 flex flex-col">
+                        <div className="overflow-x-auto flex-1">
                             <table className="w-full text-left">
                                 <thead>
                                     <tr className="bg-secullum-dark text-white text-xs uppercase tracking-wider">
@@ -1013,67 +1167,72 @@ const App: React.FC = () => {
                 )}
 
                 {listViewMode === 'grid' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-6">
-                        {displayedItems.map(item => (
-                            <div key={item.id} onClick={() => handleOpenModal(item)} className={`group relative flex flex-col h-full bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer ${selectedIds.has(item.id) ? 'ring-2 ring-secullum-blue' : ''}`}>
-                                <div className={`h-1.5 w-full ${item.needsUpdate ? 'bg-rose-500' : 'bg-secullum-green'}`}></div>
-                                <div className="flex justify-between items-start p-5 pb-0 relative z-10">
-                                    <div className="flex items-center gap-3">
-                                        <span className="font-mono text-xs font-black text-secullum-blue dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 px-2.5 py-1 rounded-md border border-blue-100 dark:border-blue-800/50">#{item.pfNumber}</span>
-                                        <div className="flex gap-1.5">
-                                            {item.needsUpdate && <div className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse" title="Requer Revisão" />}
+                    <div className="flex flex-col flex-1">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-6">
+                            {displayedItems.map(item => (
+                                <div key={item.id} onClick={() => handleOpenModal(item)} className={`group relative flex flex-col h-full bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer ${selectedIds.has(item.id) ? 'ring-2 ring-secullum-blue' : ''}`}>
+                                    <div className={`h-1.5 w-full ${item.needsUpdate ? 'bg-rose-500' : 'bg-secullum-green'}`}></div>
+                                    <div className="flex justify-between items-start p-5 pb-0 relative z-10">
+                                        <div className="flex items-center gap-3">
+                                            <span className="font-mono text-xs font-black text-secullum-blue dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 px-2.5 py-1 rounded-md border border-blue-100 dark:border-blue-800/50">#{item.pfNumber}</span>
+                                            <div className="flex gap-1.5">
+                                                {item.needsUpdate && <div className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse" title="Requer Revisão" />}
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-1">
+                                            <button onClick={(e) => handleToggleFavorite(item.id, e)} className={`p-1.5 rounded-full hover:bg-yellow-50 dark:hover:bg-yellow-900/30 ${item.isFavorite ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-400'}`}><Star size={18} className={item.isFavorite ? "fill-yellow-400" : ""} /></button>
+                                            <button onClick={(e) => handleMarkUpdated(item, e)} className="p-1.5 rounded-full hover:bg-emerald-50 text-gray-300 hover:text-emerald-500 dark:hover:bg-emerald-900/30 transition-colors" title="Marcar como Atualizado"><RefreshCw size={18} /></button>
+                                            <button onClick={(e) => toggleSelection(item.id, e)} className={`p-1.5 rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/30 ${selectedIds.has(item.id) ? 'text-secullum-blue' : 'text-gray-300 hover:text-secullum-blue'}`}>{selectedIds.has(item.id) ? <CheckSquare size={18} /> : <Square size={18} />}</button>
                                         </div>
                                     </div>
-                                    <div className="flex gap-1">
-                                        <button onClick={(e) => handleToggleFavorite(item.id, e)} className={`p-1.5 rounded-full hover:bg-yellow-50 dark:hover:bg-yellow-900/30 ${item.isFavorite ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-400'}`}><Star size={18} className={item.isFavorite ? "fill-yellow-400" : ""} /></button>
-                                        <button onClick={(e) => handleMarkUpdated(item, e)} className="p-1.5 rounded-full hover:bg-emerald-50 text-gray-300 hover:text-emerald-500 dark:hover:bg-emerald-900/30 transition-colors" title="Marcar como Atualizado"><RefreshCw size={18} /></button>
-                                        <button onClick={(e) => toggleSelection(item.id, e)} className={`p-1.5 rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/30 ${selectedIds.has(item.id) ? 'text-secullum-blue' : 'text-gray-300 hover:text-secullum-blue'}`}>{selectedIds.has(item.id) ? <CheckSquare size={18} /> : <Square size={18} />}</button>
-                                    </div>
-                                </div>
-                                <div className="p-5 flex-col flex-1 flex">
-                                    <h3 className="font-bold text-gray-800 dark:text-white text-lg leading-snug mb-2 line-clamp-2 group-hover:text-secullum-blue transition-colors">{item.question}</h3>
-                                    
-                                    {/* Visual Tags */}
-                                    <div className="flex flex-wrap gap-2 mb-3">
-                                        {item.needsUpdate && (
-                                            <div title="Atenção: Esta PF está marcada para revisão e pode conter informações desatualizadas.">
-                                                <Badge color="red" icon={AlertCircle}>Requer Revisão</Badge>
-                                            </div>
-                                        )}
-                                        {item.isReusable && (
-                                            <div title="Produtividade: Esta resposta é um padrão reutilizável para casos similares.">
-                                                <Badge color="sky" icon={RefreshCw}>Reutilizável</Badge>
-                                            </div>
-                                        )}
-                                        {item.hasVideo && (
-                                            <div title="Mídia: Esta PF contém um vídeo explicativo ou tutorial anexo.">
-                                                <Badge color="purple" icon={PlayCircle}>Vídeo</Badge>
-                                            </div>
-                                        )}
-                                    </div>
+                                    <div className="p-5 flex-col flex-1 flex">
+                                        <h3 className="font-bold text-gray-800 dark:text-white text-lg leading-snug mb-2 line-clamp-2 group-hover:text-secullum-blue transition-colors">{item.question}</h3>
+                                        
+                                        {/* Visual Tags */}
+                                        <div className="flex flex-wrap gap-2 mb-3">
+                                            {item.needsUpdate && (
+                                                <div title="Atenção: Esta PF está marcada para revisão e pode conter informações desatualizadas.">
+                                                    <Badge color="red" icon={AlertCircle}>Requer Revisão</Badge>
+                                                </div>
+                                            )}
+                                            {item.isReusable && (
+                                                <div title="Produtividade: Esta resposta é um padrão reutilizável para casos similares.">
+                                                    <Badge color="sky" icon={RefreshCw}>Reutilizável</Badge>
+                                                </div>
+                                            )}
+                                            {item.hasVideo && (
+                                                <div title="Mídia: Esta PF contém um vídeo explicativo ou tutorial anexo.">
+                                                    <Badge color="purple" icon={PlayCircle}>Vídeo</Badge>
+                                                </div>
+                                            )}
+                                        </div>
 
-                                    <div className="flex flex-wrap gap-2 mb-4"><Badge color="blue">{item.system}</Badge><Badge color="gray">{item.category}</Badge></div>
-                                    <div className="mt-auto bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 border border-slate-100 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-400 relative h-32 overflow-hidden">
-                                        <p className="line-clamp-4 leading-relaxed text-xs">{item.summary || "Sem resumo disponível."}</p>
-                                        <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-slate-50 via-slate-50/95 to-transparent dark:from-slate-900 dark:via-slate-900/95 pointer-events-none"></div>
+                                        <div className="flex flex-wrap gap-2 mb-4">
+                                            <Badge color={getSystemColor(item.system)}>{item.system}</Badge>
+                                            <Badge color="gray">{item.category}</Badge>
+                                        </div>
+                                        <div className="mt-auto bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 border border-slate-100 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-400 relative h-32 overflow-hidden">
+                                            <p className="line-clamp-4 leading-relaxed text-xs">{item.summary || "Sem resumo disponível."}</p>
+                                            <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-slate-50 via-slate-50/95 to-transparent dark:from-slate-900 dark:via-slate-900/95 pointer-events-none"></div>
+                                        </div>
+                                    </div>
+                                    <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-center text-xs">
+                                        <div className="flex flex-col">
+                                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Atualizada em</span>
+                                        <span className="text-gray-600 dark:text-gray-300 font-medium flex items-center gap-1.5"><Clock size={12} /> {getLastUpdated(item)}</span>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            {/* Share Button */}
+                                            <button onClick={(e) => handleShare(item, e)} className="p-1.5 text-gray-400 hover:text-secullum-blue hover:bg-white dark:hover:bg-slate-700 rounded-md transition-all shadow-sm z-20 relative" title="Compartilhar Link"><Share2 size={14} /></button>
+                                            {/* Direct Link */}
+                                            <a href={item.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="p-1.5 text-gray-400 hover:text-secullum-green hover:bg-white dark:hover:bg-slate-700 rounded-md transition-all shadow-sm z-20 relative" title="Abrir PF"><LinkIcon size={14} /></a>
+                                            {/* Delete Button */}
+                                            <button onClick={(e) => handleDelete(item.id, e)} className="p-1.5 text-gray-400 hover:text-rose-500 hover:bg-white dark:hover:bg-slate-700 rounded-md transition-all shadow-sm z-20 relative"><Trash2 size={14} /></button>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-center text-xs">
-                                    <div className="flex flex-col">
-                                       <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Atualizada em</span>
-                                       <span className="text-gray-600 dark:text-gray-300 font-medium flex items-center gap-1.5"><Clock size={12} /> {getLastUpdated(item)}</span>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        {/* Share Button */}
-                                        <button onClick={(e) => handleShare(item, e)} className="p-1.5 text-gray-400 hover:text-secullum-blue hover:bg-white dark:hover:bg-slate-700 rounded-md transition-all shadow-sm z-20 relative" title="Compartilhar Link"><Share2 size={14} /></button>
-                                        {/* Direct Link */}
-                                        <a href={item.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="p-1.5 text-gray-400 hover:text-secullum-green hover:bg-white dark:hover:bg-slate-700 rounded-md transition-all shadow-sm z-20 relative" title="Abrir PF"><LinkIcon size={14} /></a>
-                                        {/* Delete Button */}
-                                        <button onClick={(e) => handleDelete(item.id, e)} className="p-1.5 text-gray-400 hover:text-rose-500 hover:bg-white dark:hover:bg-slate-700 rounded-md transition-all shadow-sm z-20 relative"><Trash2 size={14} /></button>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
                 )}
 
@@ -1115,6 +1274,18 @@ const App: React.FC = () => {
                         })}
                     </div>
                 )}
+                
+                {/* PAGINATION (Only show in Grid/Table View) */}
+                {listViewMode !== 'board' && (
+                    <Pagination 
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        totalItems={filteredItems.length}
+                        itemsPerPage={itemsPerPage}
+                        onPageChange={setCurrentPage}
+                    />
+                )}
+
                 </>
             )}
           </div>
@@ -1259,17 +1430,40 @@ const App: React.FC = () => {
             <div>
                 <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-200 dark:border-slate-700 pb-2">Sistemas Cadastrados</h3>
                 <div className="flex gap-2 mb-4"><input type="text" value={newSystemName} onChange={e => setNewSystemName(e.target.value)} placeholder="Novo Sistema..." className="flex-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-secullum-blue outline-none" /><button onClick={handleAddSystem} className="bg-secullum-green text-white px-4 py-2 rounded-lg font-bold"><Plus size={18}/></button></div>
-                <div className="flex flex-wrap gap-2">{systems.map(sys => (<div key={sys} className="bg-slate-100 dark:bg-slate-700/50 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 border border-slate-200 dark:border-slate-600">{sys}<button onClick={() => handleRemoveSystem(sys)} className="text-gray-400 hover:text-rose-500"><X size={14} /></button></div>))}</div>
+                <div className="flex flex-col gap-2">
+                    {systems.map(sys => (
+                        <div key={sys} className="bg-slate-100 dark:bg-slate-700/50 px-3 py-2 rounded-lg text-sm flex items-center justify-between border border-slate-200 dark:border-slate-600">
+                             <div className="flex items-center gap-3">
+                                 <span className="font-medium text-gray-700 dark:text-gray-200">{sys}</span>
+                             </div>
+                             <div className="flex items-center gap-3">
+                                <div className="relative group">
+                                     <select 
+                                        value={getSystemColor(sys)} 
+                                        onChange={(e) => handleSystemColorChange(sys, e.target.value)}
+                                        className="appearance-none w-24 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 text-xs rounded-md pl-2 pr-6 py-1 focus:ring-1 focus:ring-secullum-blue outline-none cursor-pointer"
+                                     >
+                                         {AVAILABLE_COLORS.map(c => (
+                                             <option key={c.key} value={c.key}>{c.label}</option>
+                                         ))}
+                                     </select>
+                                     <div className={`absolute top-1/2 -translate-y-1/2 right-2 w-3 h-3 rounded-full pointer-events-none border border-black/10`} style={{ backgroundColor: AVAILABLE_COLORS.find(c => c.key === getSystemColor(sys))?.hex }}></div>
+                                </div>
+                                <button onClick={(e) => handleRemoveSystem(sys, e)} className="text-gray-400 hover:text-rose-500 p-1"><X size={16} /></button>
+                             </div>
+                        </div>
+                    ))}
+                </div>
             </div>
             <div>
                 <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-200 dark:border-slate-700 pb-2">Categorias</h3>
                 <div className="flex gap-2 mb-4"><input type="text" value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} placeholder="Nova Categoria..." className="flex-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-secullum-blue outline-none" /><button onClick={handleAddCategory} className="bg-secullum-green text-white px-4 py-2 rounded-lg font-bold"><Plus size={18}/></button></div>
-                <div className="flex flex-wrap gap-2">{categories.map(cat => (<div key={cat} className="bg-slate-100 dark:bg-slate-700/50 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 border border-slate-200 dark:border-slate-600">{cat}<button onClick={() => handleRemoveCategory(cat)} className="text-gray-400 hover:text-rose-500"><X size={14} /></button></div>))}</div>
+                <div className="flex flex-wrap gap-2">{categories.map(cat => (<div key={cat} className="bg-slate-100 dark:bg-slate-700/50 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 border border-slate-200 dark:border-slate-600">{cat}<button onClick={(e) => handleRemoveCategory(cat, e)} className="text-gray-400 hover:text-rose-500"><X size={14} /></button></div>))}</div>
             </div>
             <div>
                 <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-200 dark:border-slate-700 pb-2">Tipos de PF</h3>
                 <div className="flex gap-2 mb-4"><input type="text" value={newTypeName} onChange={e => setNewTypeName(e.target.value)} placeholder="Novo Tipo..." className="flex-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-secullum-blue outline-none" /><button onClick={handleAddType} className="bg-secullum-green text-white px-4 py-2 rounded-lg font-bold"><Plus size={18}/></button></div>
-                <div className="flex flex-wrap gap-2">{types.map(t => (<div key={t} className="bg-slate-100 dark:bg-slate-700/50 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 border border-slate-200 dark:border-slate-600">{t}<button onClick={() => handleRemoveType(t)} className="text-gray-400 hover:text-rose-500"><X size={14} /></button></div>))}</div>
+                <div className="flex flex-wrap gap-2">{types.map(t => (<div key={t} className="bg-slate-100 dark:bg-slate-700/50 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 border border-slate-200 dark:border-slate-600">{t}<button onClick={(e) => handleRemoveType(t, e)} className="text-gray-400 hover:text-rose-500"><X size={14} /></button></div>))}</div>
             </div>
         </div>
       </Modal>
