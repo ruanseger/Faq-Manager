@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { FAQItem } from '../types';
-import { PieChart, BarChart3, AlertCircle, CheckCircle2, Database, TrendingUp, Tag } from 'lucide-react';
+import { PieChart, BarChart3, AlertCircle, CheckCircle2, Database, TrendingUp, Tag, RefreshCw, Calendar, Clock } from 'lucide-react';
 
 interface DashboardProps {
   items: FAQItem[];
@@ -10,7 +10,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ items }) => {
   const stats = useMemo(() => {
     const total = items.length;
     const needsUpdate = items.filter(i => i.needsUpdate).length;
+    const isReusable = items.filter(i => i.isReusable).length;
     const upToDate = total - needsUpdate;
+
+    // Last 5 items added
+    const recentItems = [...items].sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
 
     const bySystem = items.reduce((acc, item) => {
       acc[item.system] = (acc[item.system] || 0) + 1;
@@ -29,7 +33,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ items }) => {
     const topCategories = Object.entries(byCategory)
       .sort(([, a], [, b]) => (b as number) - (a as number));
 
-    return { total, needsUpdate, upToDate, topSystems, topCategories };
+    return { total, needsUpdate, upToDate, topSystems, topCategories, isReusable, recentItems };
   }, [items]);
 
   const StatCard = ({ title, value, icon: Icon, color, gradient, subtext }: any) => (
@@ -59,7 +63,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ items }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total de PFs"
           value={stats.total}
@@ -77,6 +81,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ items }) => {
           subtext="Necessitam revisão urgente"
         />
         <StatCard
+          title="Reutilizáveis"
+          value={stats.isReusable}
+          icon={RefreshCw}
+          color="text-sky-600 bg-sky-600"
+          gradient="from-sky-400 to-sky-600"
+          subtext="Podem ser reaproveitadas"
+        />
+        <StatCard
           title="Em Dia"
           value={stats.upToDate}
           icon={CheckCircle2}
@@ -84,6 +96,85 @@ export const Dashboard: React.FC<DashboardProps> = ({ items }) => {
           gradient="from-emerald-400 to-secullum-green"
           subtext="Verificadas recentemente"
         />
+      </div>
+      
+      {/* Content Insights Section */}
+      <h3 className="text-lg font-bold text-secullum-dark dark:text-white flex items-center gap-2 pt-4">
+            <TrendingUp size={20} className="text-secullum-green" />
+            Insights de Conteúdo
+      </h3>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Recent Activity List */}
+         <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-700">
+            <h3 className="text-base font-bold text-gray-700 dark:text-gray-200 mb-4 flex items-center gap-2">
+                <Clock size={18} className="text-gray-400" /> Atividade Recente
+            </h3>
+            <div className="space-y-4">
+                {stats.recentItems.map((item) => (
+                    <div key={item.id} className="flex gap-3 items-start p-2 hover:bg-gray-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors">
+                         <div className="mt-1 bg-secullum-light dark:bg-slate-700 text-secullum-blue dark:text-blue-300 font-mono text-xs font-bold px-1.5 py-0.5 rounded">
+                            #{item.pfNumber}
+                         </div>
+                         <div>
+                             <p className="text-sm font-medium text-gray-800 dark:text-gray-200 line-clamp-1">{item.question}</p>
+                             <p className="text-xs text-gray-400 mt-0.5">{new Date(item.createdAt).toLocaleDateString()}</p>
+                         </div>
+                    </div>
+                ))}
+                {stats.recentItems.length === 0 && <p className="text-sm text-gray-400 italic">Nenhuma atividade recente.</p>}
+            </div>
+         </div>
+
+         {/* Volume Chart (Visual Only) */}
+         <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-700 flex flex-col justify-center">
+            <h3 className="text-base font-bold text-gray-700 dark:text-gray-200 mb-4 flex items-center gap-2">
+                <Calendar size={18} className="text-gray-400" /> Volume por Mês
+            </h3>
+            <div className="flex items-end justify-between h-40 gap-2 px-2">
+                 {[40, 65, 45, 80, 55, 90].map((h, i) => (
+                     <div key={i} className="w-full bg-blue-50 dark:bg-slate-700/50 rounded-t-lg relative group">
+                         <div 
+                            className="absolute bottom-0 left-0 right-0 bg-secullum-blue opacity-80 rounded-t-lg transition-all duration-1000 group-hover:opacity-100"
+                            style={{ height: `${h}%` }}
+                         ></div>
+                     </div>
+                 ))}
+            </div>
+            <div className="flex justify-between mt-2 text-xs text-gray-400 font-medium">
+                <span>Jan</span><span>Fev</span><span>Mar</span><span>Abr</span><span>Mai</span><span>Jun</span>
+            </div>
+         </div>
+
+         {/* Health Visual */}
+         <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-700 flex flex-col items-center justify-center text-center">
+            <h3 className="text-lg font-bold text-secullum-dark dark:text-white mb-2">Saúde da Base</h3>
+            
+            <div className="relative h-40 w-40 flex items-center justify-center my-4">
+                <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
+                    <path
+                        className="text-gray-100 dark:text-slate-700"
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="3.8"
+                    />
+                    <path
+                        className={`${stats.total > 0 && (stats.upToDate / stats.total) > 0.8 ? 'text-secullum-green' : 'text-secullum-blue'} transition-all duration-1000 ease-out`}
+                        strokeDasharray={`${stats.total > 0 ? (stats.upToDate / stats.total) * 100 : 0}, 100`}
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="3.8"
+                    />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-3xl font-extrabold text-gray-800 dark:text-white">
+                    {stats.total > 0 ? Math.round((stats.upToDate / stats.total) * 100) : 0}%
+                </span>
+                </div>
+            </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -137,36 +228,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ items }) => {
                         </div>
                     ))}
                 </div>
-            </div>
-
-            {/* Health Visual */}
-            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-700 flex flex-col items-center justify-center text-center flex-1">
-            <h3 className="text-lg font-bold text-secullum-dark dark:text-white mb-2">Saúde da Base</h3>
-            
-            <div className="relative h-40 w-40 flex items-center justify-center my-4">
-                <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
-                    <path
-                        className="text-gray-100 dark:text-slate-700"
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="3.8"
-                    />
-                    <path
-                        className={`${stats.total > 0 && (stats.upToDate / stats.total) > 0.8 ? 'text-secullum-green' : 'text-secullum-blue'} transition-all duration-1000 ease-out`}
-                        strokeDasharray={`${stats.total > 0 ? (stats.upToDate / stats.total) * 100 : 0}, 100`}
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="3.8"
-                    />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-3xl font-extrabold text-gray-800 dark:text-white">
-                    {stats.total > 0 ? Math.round((stats.upToDate / stats.total) * 100) : 0}%
-                </span>
-                </div>
-            </div>
             </div>
         </div>
       </div>

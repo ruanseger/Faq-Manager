@@ -1,34 +1,9 @@
-export type SystemType =
-  | 'Secullum Ponto Web'
-  | 'Secullum Ponto Offline'
-  | 'Secullum Ponto 4'
-  | 'Secullum Acesso'
-  | 'Secullum Academia'
-  | 'Secullum Escola'
-  | 'Secullum Clube'
-  | 'Secullum Estacionamento'
-  | 'Diversos'
-  | 'Secullum Ponto Virtual'
-  | 'Secullum Acesso Controlador'
-  | 'Ponto Secullum 3'
-  | 'Ponto Secullum 4'
-  | 'Secullum Ponto Web Gateway';
+
+export type SystemType = string;
 
 export type CategoryType = 'Suporte' | 'Comercial';
 
-export type PType =
-  | 'Erro'
-  | 'SQL'
-  | 'Instalação'
-  | 'Cálculos'
-  | 'Configuração Equipamento'
-  | 'Equipamentos Integrados'
-  | 'Configuração em Geral'
-  | 'Portaria'
-  | 'Políticas'
-  | 'Exposec'
-  | 'Webinar'
-  | 'Comunicação Equipamentos';
+export type PType = string;
 
 export interface HistoryEntry {
   date: number;
@@ -48,6 +23,8 @@ export interface FAQItem {
   category: CategoryType;
   type: PType;
   needsUpdate: boolean;
+  isFavorite?: boolean; // New: Favorite status
+  isReusable?: boolean; // New: Can be reused for newer content
   createdAt: number;
   history: HistoryEntry[];
 }
@@ -58,4 +35,5 @@ export interface FilterState {
   category: CategoryType | '';
   type: PType | '';
   needsUpdate: boolean | null; // null = all, true = yes, false = no
+  favorites: boolean; // New: Show only favorites
 }
