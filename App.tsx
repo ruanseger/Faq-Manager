@@ -36,12 +36,17 @@ import {
   Printer,
   Maximize2,
   Minimize2,
-  RefreshCw
+  RefreshCw,
+  Wand2,
+  PlayCircle,
+  StickyNote,
+  Database,
+  Cloud
 } from 'lucide-react';
 
 import { FAQItem, FilterState, SystemType, CategoryType, PType, HistoryEntry } from './types';
 import { SYSTEMS as DEFAULT_SYSTEMS, CATEGORIES, TYPES as DEFAULT_TYPES } from './constants';
-import { summarizeFAQContent, generateSmartId } from './services/geminiService';
+import { summarizeFAQContent, generateSmartId, fetchPFTitle } from './services/geminiService';
 import { Modal } from './components/Modal';
 import { Dashboard } from './components/Dashboard';
 
@@ -61,6 +66,7 @@ const INITIAL_DATA: FAQItem[] = [
     needsUpdate: false,
     isFavorite: false,
     isReusable: true,
+    hasVideo: true,
     createdAt: Date.now(),
     history: [
       { date: Date.now(), action: 'PF Criada' }
@@ -86,8 +92,14 @@ const Badge = ({ children, color = 'blue' }: { children?: React.ReactNode, color
 const App: React.FC = () => {
   // --- STATE ---
   const [items, setItems] = useState<FAQItem[]>(() => {
-    const saved = localStorage.getItem('secullum-faq-items');
-    return saved ? JSON.parse(saved) : INITIAL_DATA;
+    // Persistent Database Load
+    try {
+      const saved = localStorage.getItem('secullum-faq-items');
+      return saved ? JSON.parse(saved) : INITIAL_DATA;
+    } catch (e) {
+      console.error("Erro ao carregar banco de dados local", e);
+      return INITIAL_DATA;
+    }
   });
 
   // Selection State for Bulk Actions
@@ -95,13 +107,17 @@ const App: React.FC = () => {
 
   // Dynamic Configuration State
   const [systems, setSystems] = useState<string[]>(() => {
-    const saved = localStorage.getItem('secullum-systems');
-    return saved ? JSON.parse(saved) : DEFAULT_SYSTEMS;
+    try {
+      const saved = localStorage.getItem('secullum-systems');
+      return saved ? JSON.parse(saved) : DEFAULT_SYSTEMS;
+    } catch (e) { return DEFAULT_SYSTEMS; }
   });
 
   const [types, setTypes] = useState<string[]>(() => {
-    const saved = localStorage.getItem('secullum-types');
-    return saved ? JSON.parse(saved) : DEFAULT_TYPES;
+    try {
+      const saved = localStorage.getItem('secullum-types');
+      return saved ? JSON.parse(saved) : DEFAULT_TYPES;
+    } catch (e) { return DEFAULT_TYPES; }
   });
 
   // Dark Mode
@@ -115,7 +131,7 @@ const App: React.FC = () => {
 
   const [currentView, setCurrentView] = useState<'list' | 'dashboard'>('list');
   const [listViewMode, setListViewMode] = useState<'grid' | 'table' | 'board'>('grid');
-  const [viewAllMode, setViewAllMode] = useState(false); // New: Toggle for infinite scroll in grid
+  const [viewAllMode, setViewAllMode] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
 
@@ -135,6 +151,7 @@ const App: React.FC = () => {
 
   const [editingItem, setEditingItem] = useState<FAQItem | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isFetchingUrl, setIsFetchingUrl] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -155,11 +172,13 @@ const App: React.FC = () => {
     needsUpdate: false,
     isFavorite: false,
     isReusable: false,
+    hasVideo: false,
     history: []
   });
 
-  // --- EFFECTS ---
+  // --- EFFECTS (DATABASE PERSISTENCE) ---
   useEffect(() => {
+    // Automatically save to local database on every change
     localStorage.setItem('secullum-faq-items', JSON.stringify(items));
   }, [items]);
 
@@ -185,18 +204,22 @@ const App: React.FC = () => {
   // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1);
-    // Clear selection when filters change (optional, but safer to avoid deleting hidden items)
     setSelectedIds(new Set());
   }, [filters, currentView]);
 
   // --- DERIVED ---
   const filteredItems = useMemo(() => {
-    const searchLower = filters.search.toLowerCase();
+    const searchLower = filters.search.toLowerCase().trim();
     return items.filter((item) => {
+      // COMPREHENSIVE SEARCH LOGIC
       const matchesSearch = 
+        !searchLower ||
         item.pfNumber.toLowerCase().includes(searchLower) || 
         item.question.toLowerCase().includes(searchLower) ||
-        item.id.toLowerCase().includes(searchLower);
+        item.id.toLowerCase().includes(searchLower) ||
+        (item.summary && item.summary.toLowerCase().includes(searchLower)) ||
+        (item.notes && item.notes.toLowerCase().includes(searchLower)) ||
+        (item.content && item.content.toLowerCase().includes(searchLower));
       
       const matchesSystem = filters.system ? item.system === filters.system : true;
       const matchesCategory = filters.category ? item.category === filters.category : true;
@@ -209,7 +232,6 @@ const App: React.FC = () => {
   }, [items, filters]);
 
   const displayedItems = useMemo(() => {
-    // If View All Mode is enabled and we are in Grid view, return all filtered items
     if (viewAllMode && listViewMode === 'grid') {
       return filteredItems;
     }
@@ -238,6 +260,7 @@ const App: React.FC = () => {
         needsUpdate: false,
         isFavorite: false,
         isReusable: false,
+        hasVideo: false,
         summary: '',
         history: []
       });
@@ -258,6 +281,7 @@ const App: React.FC = () => {
         needsUpdate: false,
         isFavorite: false,
         isReusable: false,
+        hasVideo: false,
         summary: '',
         history: []
       });
@@ -268,7 +292,7 @@ const App: React.FC = () => {
   const toggleSelection = (id: string, e?: React.MouseEvent) => {
     if (e) {
       e.stopPropagation();
-      e.preventDefault(); // Stop row click
+      e.preventDefault(); 
     }
     
     const newSet = new Set(selectedIds);
@@ -305,24 +329,20 @@ const App: React.FC = () => {
         e.stopPropagation();
     }
     
-    // Using simple confirm for safety
     if (window.confirm('Atenção: Tem certeza que deseja excluir esta PF permanentemente?')) {
-      // 1. Update State
-      setItems(prevItems => {
-          const newItems = prevItems.filter(i => i.id !== id);
-          return newItems;
-      });
+      setItems(prevItems => prevItems.filter(i => i.id !== id));
       
-      // 2. Clear from selection if present
       if (selectedIds.has(id)) {
-          const newSet = new Set(selectedIds);
-          newSet.delete(id);
-          setSelectedIds(newSet);
+          setSelectedIds(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(id);
+              return newSet;
+          });
       }
       
-      // 3. Close modal if open and it was the item being edited
       if (isModalOpen && editingItem?.id === id) {
           setIsModalOpen(false);
+          setEditingItem(null); 
       }
     }
   };
@@ -381,20 +401,26 @@ const App: React.FC = () => {
 
         setItems(prev => prev.map(item => item.id === editingItem.id ? updatedItem : item));
       } else {
-        // New Mode (Full or Quick)
-        // OPTIMIZATION: If isQuick is true, generate a local ID instead of calling AI
-        // This makes saving instant for Quick Add.
+        // New Mode
         let smartId = '';
+        const cleanTitle = (formData.question || '').toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 30);
+        
         if (isQuick) {
-             const cleanTitle = formData.question.toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 30);
-             smartId = `pf-${formData.pfNumber}-${cleanTitle}-${Date.now().toString().slice(-4)}`;
+             smartId = `pf-${formData.pfNumber}-${cleanTitle}-${Date.now().toString().slice(-6)}`;
         } else {
-             smartId = await generateSmartId(formData.pfNumber, formData.question);
+             try {
+                smartId = await generateSmartId(formData.pfNumber || '000', formData.question || 'nova-pf');
+             } catch (e) {
+                console.error('Smart ID failed, using fallback');
+                smartId = `pf-${formData.pfNumber}-${cleanTitle}-${Date.now().toString().slice(-6)}`;
+             }
         }
         
+        if (!smartId) smartId = `pf-${Date.now()}`;
+
         const newItem: FAQItem = {
           ...formData as FAQItem,
-          id: smartId,
+          id: smartId, 
           createdAt: Date.now(),
           summary: formData.summary || '',
           history: [{ date: Date.now(), action: 'PF Criada' }]
@@ -432,6 +458,33 @@ const App: React.FC = () => {
     setIsGenerating(false);
   };
 
+  const handleFetchUrlTitle = async () => {
+    if (!formData.url) {
+        alert("Por favor, insira uma URL primeiro.");
+        return;
+    }
+    
+    setIsFetchingUrl(true);
+    try {
+        const { title, pfNumber } = await fetchPFTitle(formData.url);
+        
+        const updates: Partial<FAQItem> = {};
+        if (title) updates.question = title;
+        if (pfNumber) updates.pfNumber = pfNumber;
+        
+        if (!title && !pfNumber) {
+            alert("Não foi possível extrair dados desta URL automaticamente.");
+        } else {
+            setFormData(prev => ({ ...prev, ...updates }));
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Erro ao buscar dados da URL.");
+    } finally {
+        setIsFetchingUrl(false);
+    }
+  };
+
   // --- CONFIG HANDLERS ---
   const handleAddSystem = () => {
     if (newSystemName && !systems.includes(newSystemName)) {
@@ -459,7 +512,6 @@ const App: React.FC = () => {
     }
   };
 
-
   // --- EXPORT / IMPORT ---
   const handleExportPDF = () => {
     // Group by System
@@ -469,7 +521,6 @@ const App: React.FC = () => {
         return acc;
     }, {} as Record<string, FAQItem[]>);
 
-    // Generate HTML Content for the PDF
     const content = `
       <!DOCTYPE html>
       <html>
@@ -510,6 +561,7 @@ const App: React.FC = () => {
             .badge-alert { background: #fee2e2; color: #b91c1c; }
             .badge-ok { background: #d1fae5; color: #047857; }
             .badge-reusable { background: #e0f2fe; color: #0284c7; }
+            .badge-video { background: #f3e8ff; color: #7e22ce; }
             .item-details { font-size: 12px; color: #666; margin-bottom: 8px; }
             .item-summary { font-size: 13px; line-height: 1.5; color: #444; background: #fafafa; padding: 10px; border-radius: 6px; }
             @media print {
@@ -538,6 +590,7 @@ const App: React.FC = () => {
                         <span class="pf-number">#${i.pfNumber}</span> ${i.question}
                     </div>
                     <div>
+                        ${i.hasVideo ? '<span class="badge badge-video" style="margin-right:4px">Vídeo</span>' : ''}
                         ${i.isReusable ? '<span class="badge badge-reusable" style="margin-right:4px">Reutilizável</span>' : ''}
                         ${i.needsUpdate 
                             ? '<span class="badge badge-alert">Requer Atualização</span>' 
@@ -582,7 +635,7 @@ const App: React.FC = () => {
   };
 
   const handleExportExcel = () => {
-    const headers = ['ID Interno', 'Número PF', 'Pergunta', 'Sistema', 'Categoria', 'Tipo', 'Status', 'Reutilizável', 'Link', 'Data Criação'];
+    const headers = ['ID Interno', 'Número PF', 'Pergunta', 'Sistema', 'Categoria', 'Tipo', 'Status', 'Reutilizável', 'Tem Vídeo', 'Link', 'Data Criação'];
     const rows = filteredItems.map(item => [
       item.id,
       item.pfNumber,
@@ -592,6 +645,7 @@ const App: React.FC = () => {
       item.type,
       item.needsUpdate ? 'Requer Atualização' : 'Atualizado',
       item.isReusable ? 'Sim' : 'Não',
+      item.hasVideo ? 'Sim' : 'Não',
       item.url,
       new Date(item.createdAt).toLocaleDateString('pt-BR')
     ]);
@@ -650,16 +704,6 @@ const App: React.FC = () => {
     });
   };
 
-  const formatDate = (ts: number) => {
-    return new Date(ts).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
   return (
     <div className={`min-h-screen flex flex-col md:flex-row font-sans transition-colors duration-300 ${darkMode ? 'bg-slate-900 text-slate-100' : 'bg-gray-100 text-slate-900'}`}>
       
@@ -705,6 +749,14 @@ const App: React.FC = () => {
           </nav>
         </div>
 
+        {/* DATABASE STATUS INDICATOR */}
+        <div className="px-6 py-2">
+            <div className="flex items-center gap-2 px-3 py-2 bg-emerald-900/40 rounded-lg border border-emerald-800 text-emerald-400 text-xs font-bold shadow-inner">
+                <Database size={14} className="animate-pulse" />
+                <span>Banco de Dados: Ativo</span>
+            </div>
+        </div>
+
         {/* FILTERS SECTION */}
         {currentView === 'list' && (
           <div className="p-6 space-y-5 flex-1 overflow-y-auto custom-scrollbar">
@@ -733,12 +785,12 @@ const App: React.FC = () => {
                </button>
 
               <div>
-                <label className="text-xs font-bold text-slate-400 mb-1.5 block">Buscar (PF, ID ou Texto)</label>
+                <label className="text-xs font-bold text-slate-400 mb-1.5 block">Buscar (Tudo)</label>
                 <div className="relative group">
                   <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 group-focus-within:text-white transition-colors" />
                   <input
                     type="text"
-                    placeholder="Ex: 685, Erro..."
+                    placeholder="Busque PF, ID, texto, notas..."
                     className="w-full pl-9 pr-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-secullum-green focus:border-transparent transition-all"
                     value={filters.search}
                     onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
@@ -1087,13 +1139,18 @@ const App: React.FC = () => {
                         <div className="p-6 flex flex-col h-full">
                             {/* Header */}
                             <div className="flex justify-between items-start mb-4 pl-8 pr-8">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-mono text-xs font-extrabold bg-secullum-light dark:bg-slate-700 text-secullum-blue dark:text-blue-200 px-2.5 py-1 rounded border border-blue-100 dark:border-slate-600">
                                 PF {item.pfNumber}
                                 </span>
                                 {item.isReusable && (
                                     <div className="flex items-center text-sky-600 dark:text-sky-400 text-xs font-bold bg-sky-50 dark:bg-sky-900/30 px-2 py-1 rounded border border-sky-100 dark:border-sky-800" title="Conteúdo Reutilizável">
                                         <RefreshCw size={12} className="mr-1" /> Reutilizável
+                                    </div>
+                                )}
+                                {item.hasVideo && (
+                                    <div className="flex items-center text-purple-600 dark:text-purple-400 text-xs font-bold bg-purple-50 dark:bg-purple-900/30 px-2 py-1 rounded border border-purple-100 dark:border-purple-800" title="Possui Vídeo">
+                                        <PlayCircle size={12} className="mr-1 fill-purple-600/10" /> Vídeo
                                     </div>
                                 )}
                                 {item.needsUpdate && (
@@ -1282,15 +1339,25 @@ const App: React.FC = () => {
                     </div>
                     <div>
                     <label className="block text-xs font-bold text-secullum-blue dark:text-blue-300 uppercase tracking-wider mb-2">Link (URL)</label>
-                    <div className="relative">
-                        <input
-                            type="url"
-                            className="w-full border-gray-300 dark:border-slate-600 rounded-lg p-2.5 pl-10 focus:ring-secullum-green border bg-white dark:bg-slate-700 dark:text-white transition-all text-sm"
-                            value={formData.url}
-                            onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                            placeholder="https://www.secullum.com.br/pf?id=..."
-                        />
-                        <ExternalLink className="absolute left-3 top-3 text-slate-400" size={16} />
+                    <div className="flex gap-2">
+                        <div className="relative flex-1">
+                            <input
+                                type="url"
+                                className="w-full border-gray-300 dark:border-slate-600 rounded-lg p-2.5 pl-10 focus:ring-secullum-green border bg-white dark:bg-slate-700 dark:text-white transition-all text-sm"
+                                value={formData.url}
+                                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                                placeholder="https://www.secullum.com.br/pf?id=..."
+                            />
+                            <ExternalLink className="absolute left-3 top-3 text-slate-400" size={16} />
+                        </div>
+                        <button 
+                            onClick={handleFetchUrlTitle}
+                            disabled={isFetchingUrl || !formData.url}
+                            className="bg-secullum-blue text-white p-2.5 rounded-lg hover:bg-secullum-dark disabled:opacity-50 transition-colors"
+                            title="Mágica: Buscar título e ID da URL"
+                        >
+                            {isFetchingUrl ? <Loader2 size={18} className="animate-spin"/> : <Wand2 size={18} />}
+                        </button>
                     </div>
                     </div>
                 </div>
@@ -1424,10 +1491,32 @@ const App: React.FC = () => {
                     </div>
                 </div>
 
+                {/* Video Toggle Card */}
+                <div 
+                    className={`p-5 rounded-xl border-2 transition-all cursor-pointer transform hover:scale-102 ${
+                        formData.hasVideo 
+                        ? 'bg-purple-50 border-purple-500 shadow-md shadow-purple-100 dark:bg-slate-800 dark:border-purple-500' 
+                        : 'bg-white border-gray-200 dark:bg-slate-800 dark:border-slate-700'
+                    }`}
+                    onClick={() => setFormData({ ...formData, hasVideo: !formData.hasVideo })}
+                >
+                    <div className="flex items-center gap-4">
+                         <div className={`p-3 rounded-full ${formData.hasVideo ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-400 dark:bg-slate-700'}`}>
+                            <PlayCircle size={24} />
+                        </div>
+                        <div>
+                             <h4 className={`text-base font-extrabold ${formData.hasVideo ? 'text-purple-600' : 'text-gray-500 dark:text-gray-400'}`}>
+                                {formData.hasVideo ? 'Possui Vídeo Explicativo' : 'Sem Vídeo'}
+                            </h4>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">Clique para alterar</p>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Notes */}
                 <div className="bg-secullum-light/50 dark:bg-slate-800/50 p-4 rounded-xl border border-secullum-blue/10 dark:border-slate-700">
-                    <label className="block text-xs font-bold text-secullum-blue dark:text-blue-300 uppercase tracking-wider mb-2">
-                        Anotações Privadas
+                    <label className="block text-xs font-bold text-secullum-blue dark:text-blue-300 uppercase tracking-wider mb-2 flex items-center gap-2">
+                         <StickyNote size={14} className="text-yellow-500" /> Anotações Privadas
                     </label>
                     <div className="relative">
                         <textarea

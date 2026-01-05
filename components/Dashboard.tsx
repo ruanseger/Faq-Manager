@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { FAQItem } from '../types';
-import { PieChart, BarChart3, AlertCircle, CheckCircle2, Database, TrendingUp, Tag, RefreshCw, Calendar, Clock } from 'lucide-react';
+import { PieChart, BarChart3, AlertCircle, CheckCircle2, Database, TrendingUp, Tag, RefreshCw, Calendar, Clock, PlayCircle } from 'lucide-react';
 
 interface DashboardProps {
   items: FAQItem[];
@@ -11,6 +11,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ items }) => {
     const total = items.length;
     const needsUpdate = items.filter(i => i.needsUpdate).length;
     const isReusable = items.filter(i => i.isReusable).length;
+    const hasVideo = items.filter(i => i.hasVideo).length;
     const upToDate = total - needsUpdate;
 
     // Last 5 items added
@@ -33,7 +34,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ items }) => {
     const topCategories = Object.entries(byCategory)
       .sort(([, a], [, b]) => (b as number) - (a as number));
 
-    return { total, needsUpdate, upToDate, topSystems, topCategories, isReusable, recentItems };
+    return { total, needsUpdate, upToDate, topSystems, topCategories, isReusable, recentItems, hasVideo };
   }, [items]);
 
   const StatCard = ({ title, value, icon: Icon, color, gradient, subtext }: any) => (
@@ -81,12 +82,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ items }) => {
           subtext="Necessitam revisão urgente"
         />
         <StatCard
-          title="Reutilizáveis"
-          value={stats.isReusable}
-          icon={RefreshCw}
-          color="text-sky-600 bg-sky-600"
-          gradient="from-sky-400 to-sky-600"
-          subtext="Podem ser reaproveitadas"
+          title="Possuem Vídeo"
+          value={stats.hasVideo}
+          icon={PlayCircle}
+          color="text-purple-600 bg-purple-600"
+          gradient="from-purple-400 to-purple-600"
+          subtext="Conteúdo audiovisual"
         />
         <StatCard
           title="Em Dia"

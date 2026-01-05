@@ -25,6 +25,7 @@ export interface FAQItem {
   needsUpdate: boolean;
   isFavorite?: boolean; // New: Favorite status
   isReusable?: boolean; // New: Can be reused for newer content
+  hasVideo?: boolean; // New: Indicates if the FAQ has a video
   createdAt: number;
   history: HistoryEntry[];
 }
