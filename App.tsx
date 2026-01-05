@@ -37,7 +37,6 @@ import {
   Maximize2,
   Minimize2,
   RefreshCw,
-  Wand2,
   PlayCircle,
   StickyNote,
   Database,
@@ -46,7 +45,7 @@ import {
 
 import { FAQItem, FilterState, SystemType, CategoryType, PType, HistoryEntry } from './types';
 import { SYSTEMS as DEFAULT_SYSTEMS, CATEGORIES, TYPES as DEFAULT_TYPES } from './constants';
-import { summarizeFAQContent, generateSmartId, fetchPFTitle } from './services/geminiService';
+import { summarizeFAQContent } from './services/geminiService';
 import { Modal } from './components/Modal';
 import { Dashboard } from './components/Dashboard';
 
@@ -151,7 +150,6 @@ const App: React.FC = () => {
 
   const [editingItem, setEditingItem] = useState<FAQItem | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isFetchingUrl, setIsFetchingUrl] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -329,9 +327,17 @@ const App: React.FC = () => {
         e.stopPropagation();
     }
     
+    // Explicit confirm
     if (window.confirm('Atenção: Tem certeza que deseja excluir esta PF permanentemente?')) {
-      setItems(prevItems => prevItems.filter(i => i.id !== id));
       
+      // 1. Close modal first if the item being deleted is currently open
+      // This prevents the UI from trying to render properties of null/undefined
+      if (isModalOpen && editingItem?.id === id) {
+          setIsModalOpen(false);
+          setEditingItem(null); 
+      }
+
+      // 2. Clear from selection if present
       if (selectedIds.has(id)) {
           setSelectedIds(prev => {
               const newSet = new Set(prev);
@@ -339,11 +345,9 @@ const App: React.FC = () => {
               return newSet;
           });
       }
-      
-      if (isModalOpen && editingItem?.id === id) {
-          setIsModalOpen(false);
-          setEditingItem(null); 
-      }
+
+      // 3. Update State
+      setItems(prevItems => prevItems.filter(i => i.id !== id));
     }
   };
 
@@ -401,22 +405,10 @@ const App: React.FC = () => {
 
         setItems(prev => prev.map(item => item.id === editingItem.id ? updatedItem : item));
       } else {
-        // New Mode
-        let smartId = '';
-        const cleanTitle = (formData.question || '').toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 30);
-        
-        if (isQuick) {
-             smartId = `pf-${formData.pfNumber}-${cleanTitle}-${Date.now().toString().slice(-6)}`;
-        } else {
-             try {
-                smartId = await generateSmartId(formData.pfNumber || '000', formData.question || 'nova-pf');
-             } catch (e) {
-                console.error('Smart ID failed, using fallback');
-                smartId = `pf-${formData.pfNumber}-${cleanTitle}-${Date.now().toString().slice(-6)}`;
-             }
-        }
-        
-        if (!smartId) smartId = `pf-${Date.now()}`;
+        // New Mode - INSTANT SAVE
+        // We removed the AI ID generation to make this instantaneous
+        const cleanTitle = (formData.question || '').toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 40);
+        const smartId = `pf-${formData.pfNumber}-${cleanTitle}-${Date.now().toString().slice(-6)}`;
 
         const newItem: FAQItem = {
           ...formData as FAQItem,
@@ -428,6 +420,7 @@ const App: React.FC = () => {
         setItems(prev => [newItem, ...prev]);
       }
       
+      // Close Modals immediately
       if (isQuick) {
         setIsQuickAddOpen(false);
       } else {
@@ -456,33 +449,6 @@ const App: React.FC = () => {
     );
     setFormData(prev => ({ ...prev, summary }));
     setIsGenerating(false);
-  };
-
-  const handleFetchUrlTitle = async () => {
-    if (!formData.url) {
-        alert("Por favor, insira uma URL primeiro.");
-        return;
-    }
-    
-    setIsFetchingUrl(true);
-    try {
-        const { title, pfNumber } = await fetchPFTitle(formData.url);
-        
-        const updates: Partial<FAQItem> = {};
-        if (title) updates.question = title;
-        if (pfNumber) updates.pfNumber = pfNumber;
-        
-        if (!title && !pfNumber) {
-            alert("Não foi possível extrair dados desta URL automaticamente.");
-        } else {
-            setFormData(prev => ({ ...prev, ...updates }));
-        }
-    } catch (e) {
-        console.error(e);
-        alert("Erro ao buscar dados da URL.");
-    } finally {
-        setIsFetchingUrl(false);
-    }
   };
 
   // --- CONFIG HANDLERS ---
@@ -1350,14 +1316,6 @@ const App: React.FC = () => {
                             />
                             <ExternalLink className="absolute left-3 top-3 text-slate-400" size={16} />
                         </div>
-                        <button 
-                            onClick={handleFetchUrlTitle}
-                            disabled={isFetchingUrl || !formData.url}
-                            className="bg-secullum-blue text-white p-2.5 rounded-lg hover:bg-secullum-dark disabled:opacity-50 transition-colors"
-                            title="Mágica: Buscar título e ID da URL"
-                        >
-                            {isFetchingUrl ? <Loader2 size={18} className="animate-spin"/> : <Wand2 size={18} />}
-                        </button>
                     </div>
                     </div>
                 </div>
