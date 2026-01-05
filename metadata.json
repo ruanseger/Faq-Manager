@@ -1,0 +1,5 @@
+{
+  "name": "Secullum FAQ Manager AI",
+  "description": "A tool to manage, summarize, and annotate FAQ (PF) items with Gemini AI assistance, featuring comprehensive filtering and status tracking.",
+  "requestFramePermissions": []
+}

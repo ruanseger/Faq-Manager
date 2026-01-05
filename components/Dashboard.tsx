@@ -1,0 +1,175 @@
+import React, { useMemo } from 'react';
+import { FAQItem } from '../types';
+import { PieChart, BarChart3, AlertCircle, CheckCircle2, Database, TrendingUp, Tag } from 'lucide-react';
+
+interface DashboardProps {
+  items: FAQItem[];
+}
+
+export const Dashboard: React.FC<DashboardProps> = ({ items }) => {
+  const stats = useMemo(() => {
+    const total = items.length;
+    const needsUpdate = items.filter(i => i.needsUpdate).length;
+    const upToDate = total - needsUpdate;
+
+    const bySystem = items.reduce((acc, item) => {
+      acc[item.system] = (acc[item.system] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const byCategory = items.reduce((acc, item) => {
+      acc[item.category] = (acc[item.category] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const topSystems = Object.entries(bySystem)
+      .sort(([, a], [, b]) => (b as number) - (a as number))
+      .slice(0, 5);
+      
+    const topCategories = Object.entries(byCategory)
+      .sort(([, a], [, b]) => (b as number) - (a as number));
+
+    return { total, needsUpdate, upToDate, topSystems, topCategories };
+  }, [items]);
+
+  const StatCard = ({ title, value, icon: Icon, color, gradient, subtext }: any) => (
+    <div className={`bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-700 relative overflow-hidden group`}>
+      <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${gradient} opacity-10 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-110`}></div>
+      <div className="relative z-10">
+        <div className="flex justify-between items-start">
+            <div>
+            <p className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{title}</p>
+            <h3 className="text-4xl font-extrabold text-secullum-blue dark:text-white mt-2">{value}</h3>
+            </div>
+            <div className={`p-3 rounded-xl ${color} bg-opacity-10 dark:bg-opacity-20 shadow-inner`}>
+            <Icon className={color.replace('bg-', 'text-')} size={28} />
+            </div>
+        </div>
+        {subtext && <p className="text-xs font-medium text-gray-400 dark:text-gray-500 mt-4 flex items-center gap-1"><TrendingUp size={12}/> {subtext}</p>}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+      <div className="flex items-center justify-between">
+        <div>
+            <h2 className="text-3xl font-extrabold text-secullum-dark dark:text-white tracking-tight">Dashboard Geral</h2>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">Métricas em tempo real da base de conhecimento.</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatCard
+          title="Total de PFs"
+          value={stats.total}
+          icon={Database}
+          color="text-secullum-blue bg-secullum-blue"
+          gradient="from-blue-400 to-secullum-blue"
+          subtext="Base de conhecimento ativa"
+        />
+        <StatCard
+          title="Desatualizadas"
+          value={stats.needsUpdate}
+          icon={AlertCircle}
+          color="text-rose-600 bg-rose-600"
+          gradient="from-rose-400 to-rose-600"
+          subtext="Necessitam revisão urgente"
+        />
+        <StatCard
+          title="Em Dia"
+          value={stats.upToDate}
+          icon={CheckCircle2}
+          color="text-secullum-green bg-secullum-green"
+          gradient="from-emerald-400 to-secullum-green"
+          subtext="Verificadas recentemente"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Systems Chart */}
+        <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-sm border border-gray-100 dark:border-slate-700">
+          <h3 className="text-lg font-bold text-secullum-dark dark:text-white mb-8 flex items-center gap-2">
+            <BarChart3 size={20} className="text-secullum-blue" />
+            Distribuição por Sistema
+          </h3>
+          <div className="space-y-6">
+            {stats.topSystems.map(([system, count], index) => (
+              <div key={system} className="relative group">
+                <div className="flex justify-between text-sm mb-2 font-medium">
+                  <span className="text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                     <span className="w-6 h-6 rounded-md bg-secullum-light dark:bg-slate-700 flex items-center justify-center text-xs text-secullum-blue dark:text-blue-300 font-bold">{index + 1}</span>
+                     {system}
+                  </span>
+                  <span className="text-secullum-dark dark:text-white font-bold">{count}</span>
+                </div>
+                <div className="w-full bg-gray-100 dark:bg-slate-700 rounded-full h-3 overflow-hidden">
+                  <div 
+                    className="bg-secullum-blue h-3 rounded-full transition-all duration-1000 group-hover:bg-blue-600 relative" 
+                    style={{ width: `${(count / stats.total) * 100}%` }}
+                  >
+                      <div className="absolute top-0 right-0 bottom-0 w-full bg-gradient-to-l from-white/20 to-transparent"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {stats.topSystems.length === 0 && (
+              <p className="text-gray-400 text-center py-4">Nenhum dado disponível</p>
+            )}
+          </div>
+        </div>
+
+        {/* Categories & Health */}
+        <div className="flex flex-col gap-6">
+            {/* Category Stats */}
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-700 flex-1">
+                <h3 className="text-lg font-bold text-secullum-dark dark:text-white mb-6 flex items-center gap-2">
+                    <Tag size={20} className="text-secullum-green" />
+                    Por Categoria
+                </h3>
+                <div className="space-y-4">
+                    {stats.topCategories.map(([cat, count]) => (
+                        <div key={cat} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-slate-700/50">
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{cat}</span>
+                            <span className="text-sm font-bold text-secullum-blue dark:text-white bg-white dark:bg-slate-600 px-2 py-1 rounded shadow-sm">
+                                {count}
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Health Visual */}
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-700 flex flex-col items-center justify-center text-center flex-1">
+            <h3 className="text-lg font-bold text-secullum-dark dark:text-white mb-2">Saúde da Base</h3>
+            
+            <div className="relative h-40 w-40 flex items-center justify-center my-4">
+                <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
+                    <path
+                        className="text-gray-100 dark:text-slate-700"
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="3.8"
+                    />
+                    <path
+                        className={`${stats.total > 0 && (stats.upToDate / stats.total) > 0.8 ? 'text-secullum-green' : 'text-secullum-blue'} transition-all duration-1000 ease-out`}
+                        strokeDasharray={`${stats.total > 0 ? (stats.upToDate / stats.total) * 100 : 0}, 100`}
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="3.8"
+                    />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-3xl font-extrabold text-gray-800 dark:text-white">
+                    {stats.total > 0 ? Math.round((stats.upToDate / stats.total) * 100) : 0}%
+                </span>
+                </div>
+            </div>
+            </div>
+        </div>
+      </div>
+    </div>
+  );
+};
