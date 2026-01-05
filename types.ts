@@ -1,7 +1,7 @@
 
 export type SystemType = string;
 
-export type CategoryType = 'Suporte' | 'Comercial';
+export type CategoryType = string;
 
 export type PType = string;
 
@@ -36,5 +36,7 @@ export interface FilterState {
   category: CategoryType | '';
   type: PType | '';
   needsUpdate: boolean | null; // null = all, true = yes, false = no
-  favorites: boolean; // New: Show only favorites
+  favorites: boolean; // Show only favorites
+  isReusable: boolean | null; // null = all
+  hasVideo: boolean | null; // null = all
 }
